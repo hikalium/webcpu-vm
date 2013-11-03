@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=9">
+<meta charset="UTF-8">
+<title>webcpu</title>
+<style type="text/css">
+	h1, h2, h3 {
+		margin:0px;
+	}
+	body, textarea {
+		font-family: Consolas, 'Courier New', Courier, Monaco, monospace;
+		font-size: 14px;
+		line-height: 1.2;
+	}
+	#fileDropZone {
+		border: 2px dashed #bbb;
+		padding: 25px;
+		text-align: center;
+		font: 20pt bold;
+		color: #bbb;
+	}
+</style>
+<script type="text/javascript" src="./header.js" charset="UTF-8"></script>
+<script type="text/javascript">
+
+var mainCPU = null;
+// bball backend bin
+var demoBin = "\
+05  e1  ae  3a  0c  46  4b  b3  da  41  d8  10  95  a0  53  51\n\
+11  72  c0  75  10  77  71  79  c3  5b  75  ac  38  1b  fa  4a\n\
+bb  b8  bc  46  46  50  8f  88  01  08  81  10  43  26  66  b8\n\
+88  88  22  08  83  20  49  54  5a  aa  54  01  49  54  bf  ac\n\
+11  a5  48  72  45  38  51\n\
+";
+onload = function(){
+	mainCPU = new WebCPU();
+
+	mainCPU.setMainWindowCanvasDOMObject("mainWindowCanvas");
+	enableDebugMode();
+	document.getElementsByName("binaryCodeText")[0].value = demoBin;
+	
+	// Setup the dnd listeners.
+	var dropZone = document.getElementById('fileDropZone');
+	dropZone.addEventListener('dragover', handleDragOver, false);
+	dropZone.addEventListener('drop', handleFileSelect, false);
+}
+
+function loadBinaryTextToCPU(){
+	mainCPU.loadBinaryText(document.getElementsByName("binaryCodeText")[0].value);
+	return false;
+}
+
+function enableDebugMode(){
+	mainCPU.setDebugMessageDOMObject("debugMessageText");
+	mainCPU.setDebugIntegerRegisterDOMObject("debugIntegerRegisterText");
+	mainCPU.setDebugPointerRegisterDOMObject("debugPointerRegisterText");
+	mainCPU.message("****Debug mode enabled.\n");
+}
+
+function disableDebugMode(){
+	mainCPU.message("****Debug mode disabled.\n");
+	mainCPU.setDebugMessageDOMObject(null);
+	mainCPU.setDebugIntegerRegisterDOMObject(null);
+	mainCPU.setDebugPointerRegisterDOMObject(null);
+	
+}
+
+var stepInTimer = null;
+
+function stepInMs(){
+	stepInTimer = window.setInterval(stepInMs_Tick, 1);
+}
+
+function stepInMs_Tick(){
+	if(mainCPU.executeStepIn() != 0){
+		window.clearTimeout(stepInTimer);
+	}
+}
+
+
+
+// http://www.html5rocks.com/ja/tutorials/file/dndfiles/
+function handleFileSelect(evt){
+	evt.stopPropagation();
+	evt.preventDefault();
+
+	var files = evt.dataTransfer.files; // FileList object.
+	
+	// files is a FileList of File objects. List some properties.
+	var output = [];
+	for(var i = 0, f; f = files[i]; i++){
+		output.push('<li><strong>', escape(f.name), '</strong> ', f.size, ' bytes, last modified: ', f.lastModifiedDate.toLocaleDateString(), '</li>');
+		var r = new FileReader();
+		r.onload = (function(file){
+			return function(e){
+				var a = r.result;
+				var v = new DataView(a);
+				var ds = "";
+				for(var i = 0; i < a.byteLength; i++){
+					ds += ("00" + v.getUint8(i).toString(16).toUpperCase()).slice(-2);
+				}
+				document.getElementsByName("binaryCodeText")[0].value = ds;
+				console.log(ds);
+			}
+		})(f);
+		r.readAsArrayBuffer(f);
+	}
+	document.getElementById('fileList').innerHTML = '<ul>' + output.join('') + '</ul>';
+}
+
+function handleDragOver(evt){
+	evt.stopPropagation();
+	evt.preventDefault();
+	evt.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
+}
+</script>
+</head>
+<body>
+<h1>WebCPU</h1>
+<div style="float:left;">
+	<h2>mainWindow</h2>
+	<canvas id="mainWindowCanvas" width="640" height="480" style="border:1px solid #000000;"></canvas>
+</div>
+<div style="float:left;">
+	<h2>binaryCode</h2>
+	<textarea name="binaryCodeText" cols="64" rows="24"></textarea>
+	<div id="fileDropZone">Drop Binary.ose here</div>
+	<div id="fileList"></div>
+</div>
+<div style="clear:both;">
+	<form onsubmit="return false;">
+		<button onclick="loadBinaryTextToCPU();">Load</button><br />
+		<button onclick="mainCPU.executeStepIn();">StepIn</button>
+		<button onclick="stepInMs();">StepInMs</button>
+		<button onclick="for(var i = 0; i < 100; i++){ mainCPU.executeStepIn(); }">StepIn100</button>
+		<button onclick="mainCPU.execute();">Execute</button>
+		<button onclick="mainCPU.stopFlag = true;">Break</button><br />
+		<button onclick="enableDebugMode();">EnableDebugMode</button>
+		<button onclick="disableDebugMode();">DisableDebugMode</button>
+	</form>
+	<h2>Internal Information</h2>
+	<div style="float:left;">
+		<input type="checkbox" onchange="">message</input><br />
+		<textarea name="debugMessageText" cols="66" rows="16"></textarea>
+	</div>
+	<div style="float:left;">
+		<input type="checkbox" onchange="">IntegerRegister</input><br />
+		<textarea name="debugIntegerRegisterText" cols="32" rows="16"></textarea>
+	</div>
+	<div style="float:left;">
+		<input type="checkbox" onchange="">PointerRegister</input><br />
+		<textarea name="debugPointerRegisterText" cols="32" rows="16"></textarea>
+	</div>
+</div>
+</body>
+</html>
