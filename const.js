@@ -1,6 +1,28 @@
 WebCPU.maxDebugStringLength = 0xffff;
-
-WebCPU_Instruction.opcode = {
+WebCPU.pType = {
+	VPtr	:0x01,
+	SINT8	:0x02,	//8bitの符号付き, いわゆる signed char.
+	UINT8	:0x03,
+	SINT16	:0x04,	//16bitの符号付き, いわゆる short.
+	UINT16	:0x05,
+	SINT32	:0x06,
+	UINT32	:0x07,
+	SINT4	:0x08,
+	UINT4	:0x09,
+	SINT2	:0x0a,
+	UINT2	:0x0b,
+	SINT1	:0x0c,	//代入できるのは0か-1のみ.
+	UINT1	:0x0d,
+	SINT12	:0x0e,
+	UINT12	:0x0f,
+	SINT20	:0x10,
+	UINT20	:0x11,
+	SINT24	:0x12,
+	UINT24	:0x13,
+	SINT28	:0x14,
+	UINT28	:0x15,
+};
+WebCPU.opcode = {
 	NOP:	0x00,
 	LB:		0x01,
 	LIMM:	0x02,
@@ -50,4 +72,4 @@ WebCPU_Instruction.opcode = {
 	DATA:	0x34,
 	//
 	REMARK:	0xFE,
-}
+};

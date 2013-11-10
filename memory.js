@@ -61,7 +61,7 @@ function WebCPU_Pointer(memoryPage){
 		if(this.memoryPage.data[0] instanceof WebCPU_Instruction_LB){
 			//ラベルが直下にあればそのラベル番号をポインタに記憶する
 			this.labelNumber = this.memoryPage.data[0].imm32;
-			this.memoryType = this.T_VPtr;
+			this.memoryType = WebCPU.pType.VPtr;
 			if(this.memoryPage.data[1]){
 				if(this.memoryPage.data[1] instanceof WebCPU_Instruction_DATA){
 					//ラベル直下がDATAだった場合はそのDATAの型に従う
@@ -103,27 +103,6 @@ WebCPU_Pointer.prototype = {
 		"SINT28",
 		"UINT28",	//0x15
 	],
-	T_VPtr		:0x01,
-	T_SINT8		:0x02,	//8bitの符号付き, いわゆる signed char.
-	T_UINT8		:0x03,
-	T_SINT16	:0x04,	//16bitの符号付き, いわゆる short.
-	T_UINT16	:0x05,
-	T_SINT32	:0x06,
-	T_UINT32	:0x07,
-	T_SINT4		:0x08,
-	T_UINT4		:0x09,
-	T_SINT2		:0x0a,
-	T_UINT2		:0x0b,
-	T_SINT1		:0x0c,	//代入できるのは0か-1のみ.
-	T_UINT1		:0x0d,
-	T_SINT12	:0x0e,
-	T_UINT12	:0x0f,
-	T_SINT20	:0x10,
-	T_UINT20	:0x11,
-	T_SINT24	:0x12,
-	T_UINT24	:0x13,
-	T_SINT28	:0x14,
-	T_UINT28	:0x15,
 	toString: function(){
 		if(this.memoryType == 0xC0FFEE){
 			//API Address, NOT OFFICIAL
