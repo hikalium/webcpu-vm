@@ -19,11 +19,11 @@ WebCPU_Instruction.prototype = {
 	},
 	execute: function(env){
 		//printXXXはデバッグ用
-		if(this.printSourceRegister){
+		if(this.isEnabledPrintSourceRegister && this.printSourceRegister){
 			this.printSourceRegister(env);
 		}
 		this.instruction(env);
-		if(this.printDestinationRegister){
+		if(this.isEnabledPrintDestinationRegister && this.printDestinationRegister){
 			this.printDestinationRegister(env);
 		}
 	},
@@ -72,6 +72,8 @@ WebCPU_Instruction.prototype = {
 		return parseSignedInt32(argBinStr.substr(baseIndex + offset * 2, bytes * 2), 16);
 	},
 	//
+	isEnabledPrintSourceRegister: true,
+	isEnabledPrintDestinationRegister: true,
 	printSourceRegister: null,
 	printDestinationRegister: null,
 }

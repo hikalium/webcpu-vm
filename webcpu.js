@@ -1,3 +1,5 @@
+//WebCPUは、このディレクトリにあるファイルで完結している。
+
 function WebCPU_Exception(errno, infoArray){
 	this.errno = errno;
 	this.infoArray = infoArray;
@@ -265,27 +267,29 @@ WebCPU.prototype = {
 	executeStepIn: function(){
 		//ステップ実行する。
 		//一回実行するたびに再描画する。
-		var retv = this.executeStepIn_Internal();
-		this.API.API_flushWin(this, this.API.mainWindowBufferCanvas.width, this.API.mainWindowBufferCanvas.height, 0, 0);
+		var retv = this.executeStepIn_Internal(true);
+		this.API.API_flushWin(this, this.API.mainWindowCanvas.width, this.API.mainWindowCanvas.height, 0, 0);
 		return retv;
 	},
-	executeStepIn_Internal: function(){
+	executeStepIn_Internal: function(isManualStepIn){
 		//ステップ実行の内部部分。
 		//終端到達時は1を、まだ後続命令がある場合は0を返す。
 		//終了時にのみ再描画を行う
 		if(this.stopFlag){
 			this.message(">stepIn:Break.\n", 2);
 			this.stopFlag = false;
-			this.API.API_flushWin(this, this.API.mainWindowBufferCanvas.width, this.API.mainWindowBufferCanvas.height, 0, 0);
+			this.API.API_flushWin(this, this.API.mainWindowCanvas.width, this.API.mainWindowCanvas.height, 0, 0);
 			return 2;
 		}
 		var instr = this.fetchMemoryNext();
 		if(instr === undefined){
 			this.message(">stepIn:control reached end of binary.\n", 2);
-			this.API.API_flushWin(this, this.API.mainWindowBufferCanvas.width, this.API.mainWindowBufferCanvas.height, 0, 0);
+			this.API.API_flushWin(this, this.API.mainWindowCanvas.width, this.API.mainWindowCanvas.height, 0, 0);
 			return 1;
 		}
-		this.message(">stepIn:" + this.memoryPageCounter + "-" + (this.memoryInstructionCounter - 1) + ":" + instr.toString() + "\n", 20);
+		if(isManualStepIn){
+			this.message(">stepIn:" + this.memoryPageCounter + "-" + (this.memoryInstructionCounter - 1) + ":" + instr.toString() + "\n", 20);
+		}
 		instr.execute(this);
 		//これ以降this.memoryInstructionCounterが今実行した命令を指すとは限らない。（JMP系命令のため）
 		/*
@@ -300,7 +304,7 @@ WebCPU.prototype = {
 	execute: function(){
 		//最速で実行する
 		for(;;){
-			if(this.executeStepIn_Internal() != 0){
+			if(this.executeStepIn_Internal(false) != 0){
 				return;
 			}
 		}
@@ -356,10 +360,14 @@ WebCPU.prototype = {
 			//すべて無効だったらタイマーの動作自体を止める
 			window.clearTimeout(this.messageTimer);
 			this.messageTimer = null;
+			WebCPU_Instruction.prototype.isEnabledPrintSourceRegister = false;
+			WebCPU_Instruction.prototype.isEnabledPrintDestinationRegister = false;
 		} else if(!this.messageTimer){
 			//どれかが有効でかつタイマーが止まっていたらスタートさせる
 			var that = this;
 			this.messageTimer = window.setInterval(function(){that.debugShowTick();}, 50);
+			WebCPU_Instruction.prototype.isEnabledPrintSourceRegister = true;
+			WebCPU_Instruction.prototype.isEnabledPrintDestinationRegister = true;
 		}
 	},
 	debugShowTick: function(){

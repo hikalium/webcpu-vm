@@ -1,12 +1,144 @@
+function BitmapCanvas(){
+	this.canvasDOMObject = null;
+	this.canvasContext = null;
+	this.bufferImageData = null;
+	this.bmp = null;
+	this.width = undefined;
+	this.height = undefined;
+}
+BitmapCanvas.prototype = {
+	setCanvas: function(canvasDOMObject){
+		this.canvasDOMObject = canvasDOMObject;
+		if(canvasDOMObject){
+			this.canvasContext = this.canvasDOMObject.getContext("2d");
+			this.width = this.canvasDOMObject.width;
+			this.height = this.canvasDOMObject.height;
+			this.bufferImageData = this.canvasContext.getImageData(0, 0, this.width, this.height);
+			this.bmp = this.bufferImageData.data;
+			console.log(this.bufferImageData);
+			//
+			/*
+			for(var i = 0; i < 100; i += 2){
+				this.drawLine(0, i, 100, i, 0xffffff, 0);
+			}
+			var x0 = 10;
+			var y0 = 10;
+			var x1 = 60;
+			var y1 = 11;
+			this.drawLine(x0, y0, x1, y1, 0xff0000, 0);
+			this.drawLine(x1, y1, x0, y0, 0x00ff00, 1);
+			*/
+			this.flush();
+		} else{
+			this.bmp = null;
+			this.canvasContext = null;
+			this.bufferImageData = null;
+			this.width = undefined;
+			this.height = undefined;
+		}
+	},
+	drawPoint: function(x, y, color, mode){
+		if(this.bmp){
+			if(mode === undefined){
+				mode = 0;
+			} else{
+				mode &= 0x03;
+			}
+			x += 0.5;
+			x |= 0;
+			y += 0.5;
+			y |= 0;
+			//RGBARGBA...
+			if(mode == 0){
+				//PSET
+				this.bmp[4 * (y * this.width + x) + 0] = (color >> 16) & 0xFF;
+				this.bmp[4 * (y * this.width + x) + 1] = (color >> 8) & 0xFF;
+				this.bmp[4 * (y * this.width + x) + 2] = color & 0xFF;
+			} else if(mode == 1){
+				//OR
+				this.bmp[4 * (y * this.width + x) + 0] |= (color >> 16) & 0xFF;
+				this.bmp[4 * (y * this.width + x) + 1] |= (color >> 8) & 0xFF;
+				this.bmp[4 * (y * this.width + x) + 2] |= color & 0xFF;
+			} else if(mode == 2){
+				//XOR
+				this.bmp[4 * (y * this.width + x) + 0] ^= (color >> 16) & 0xFF;
+				this.bmp[4 * (y * this.width + x) + 1] ^= (color >> 8) & 0xFF;
+				this.bmp[4 * (y * this.width + x) + 2] ^= color & 0xFF;
+			} else if(mode == 3){
+				//AND
+				this.bmp[4 * (y * this.width + x) + 0] &= (color >> 16) & 0xFF;
+				this.bmp[4 * (y * this.width + x) + 1] &= (color >> 8) & 0xFF;
+				this.bmp[4 * (y * this.width + x) + 2] &= color & 0xFF;
+			}
+		}
+	},
+	drawLine: function(x0, y0, x1, y1, color, mode){
+		//整数座標のみ対応。
+		x0 |= 0;
+		y0 |= 0;
+		x1 |= 0;
+		y1 |= 0;
+		var dx = x1 - x0;
+		var dy = y1 - y0;
+		var dxa = dx;
+		var dya = dy;
+		var l;
+		
+		if(dxa < 0){
+			dxa = -dxa;
+		}
+		if(dya < 0){
+			dya = -dya;
+		}
+		
+		if(dxa > dya){
+			//x軸基準
+			l = dxa + 1;
+			if(x0 > x1){
+				dx = -1;
+			} else{
+				dx = 1;
+			}
+			dy /= l;
+		} else{
+			//y軸基準
+			l = dya + 1;
+			if(y0 > y1){
+				dy = -1;
+			} else{
+				dy = 1;
+			}
+			dx /= l;
+		}
+		
+		for(var i = 0; i < l; i++){
+			this.drawPoint(x0 + dx * i, y0 + dy * i, color, mode);
+		}
+	},
+	fillRect: function(xSize, ySize, x0, y0, col, mode){
+	
+	},
+	fillOval: function(xSize, ySize, x0, y0, col, mode){
+	
+	},
+	flush: function(){
+		if(this.bufferImageData){
+			this.canvasContext.putImageData(this.bufferImageData, 0, 0);
+		}
+	},
+}
+
 function WebCPU_API(){
 	this.mainWindowCanvas = null;
 	this.mainWindowContext = null;
-	this.mainWindowBufferCanvas = document.createElement('canvas');
-	this.mainWindowBufferContext = this.mainWindowBufferCanvas.getContext("2d");
+	//this.mainWindowBufferCanvas = document.createElement('canvas');
+	//this.mainWindowBufferContext = this.mainWindowBufferCanvas.getContext("2d");
 	//
-	this.mainWindowBufferCanvas.width = 640;
-	this.mainWindowBufferCanvas.height = 480;
-	this.initCanvas(this.mainWindowBufferCanvas);
+	this.bitmapCanvas = new BitmapCanvas();
+	//
+	//this.mainWindowBufferCanvas.width = 640;
+	//this.mainWindowBufferCanvas.height = 480;
+	//this.initCanvas(this.mainWindowBufferCanvas);
 }
 WebCPU_API.prototype = {
 	executeAPI: function(env){
@@ -57,6 +189,8 @@ WebCPU_API.prototype = {
 		if(this.mainWindowCanvas){
 			this.mainWindowContext = this.mainWindowCanvas.getContext('2d')
 			this.initCanvas(this.mainWindowCanvas);
+			//
+			this.bitmapCanvas.setCanvas(this.mainWindowCanvas);
 		} else{
 			this.mainWindowContext = null;
 		}
@@ -74,20 +208,24 @@ WebCPU_API.prototype = {
 		env.message("junkApi_openWin();\n", 20);
 		this.mainWindowCanvas.width = xSize;
 		this.mainWindowCanvas.height = ySize;
-		this.mainWindowBufferCanvas.width = xSize;
-		this.mainWindowBufferCanvas.height = ySize;
+		//this.mainWindowBufferCanvas.width = xSize;
+		//this.mainWindowBufferCanvas.height = ySize;
+		this.initCanvas(this.mainWindowCanvas);
+		this.bitmapCanvas.setCanvas(this.mainWindowCanvas);
 	},
 	API_flushWin: function(env, xSize, ySize, x0, y0){
 		env.message("junkApi_flushWin();\n", 20);
-		this.mainWindowContext.drawImage(this.mainWindowBufferCanvas, x0, y0, xSize, ySize, 0, 0, xSize, ySize);
+		//this.mainWindowContext.drawImage(this.mainWindowBufferCanvas, x0, y0, xSize, ySize, 0, 0, xSize, ySize);
+		this.bitmapCanvas.flush();
 	},
 	API_drawPoint: function(env, mode, x, y, col){
 		env.message("junkApi_drawPoint();\n", 20);
 		if((mode & 0x04) != 0){
 			col = this.colorTable[col];
 		}
-		this.mainWindowBufferContext.fillStyle = "#" + ("000000" + col.toString(16)).slice(-6).toUpperCase();
-		this.mainWindowBufferContext.fillRect(x, y, 1, 1);
+		//this.mainWindowBufferContext.fillStyle = "#" + ("000000" + col.toString(16)).slice(-6).toUpperCase();
+		//this.mainWindowBufferContext.fillRect(x, y, 1, 1);
+		this.bitmapCanvas.drawPoint(x, y, col, mode);
 	},
 	API_drawLine: function(env, mode, x0, y0, x1, y1, col){
 		env.message("junkApi_drawLine();\n", 20);
@@ -95,13 +233,15 @@ WebCPU_API.prototype = {
 		if((mode & 0x04) != 0){
 			col = this.colorTable[col];
 		}
-		
+		/*
 		this.mainWindowBufferContext.strokeStyle = "#" + ("000000" + col.toString(16)).slice(-6).toUpperCase();
 		this.mainWindowBufferContext.beginPath();
 		this.mainWindowBufferContext.moveTo(x0, y0);
 		this.mainWindowBufferContext.lineTo(x1, y1);
 		this.mainWindowBufferContext.closePath();
 		this.mainWindowBufferContext.stroke();
+		*/
+		this.bitmapCanvas.drawLine(x0, y0, x1, y1, col, mode);
 	},
 	API_fillRect: function(env, mode, xSize, ySize, x0, y0, col){
 		env.message("junkApi_fillRect();\n", 20);
@@ -109,9 +249,10 @@ WebCPU_API.prototype = {
 		if((mode & 0x04) != 0){
 			col = this.colorTable[col];
 		}
-		
+		/*
 		this.mainWindowBufferContext.fillStyle = "#" + ("000000" + col.toString(16)).slice(-6).toUpperCase();
 		this.mainWindowBufferContext.fillRect(x0, y0, xSize, ySize);
+		*/
 	},
 	API_fillOval: function(env, mode, xSize, ySize, x0, y0, col){
 		env.message("junkApi_fillRect();\n", 20);
@@ -119,8 +260,9 @@ WebCPU_API.prototype = {
 		if((mode & 0x04) != 0){
 			col = this.colorTable[col];
 		}
-		
+		/*
 		this.mainWindowBufferContext.fillStyle = "#" + ("000000" + col.toString(16)).slice(-6).toUpperCase();
 		this.mainWindowBufferContext.fillEllipse(x0, y0, xSize, ySize);
+		*/
 	},
 }

@@ -67,14 +67,20 @@ function disableDebugMode(){
 }
 
 var stepInTimer = null;
+var autoStepInCount = 0;
 
 function stepInMs(){
 	stepInTimer = window.setInterval(stepInMs_Tick, 1);
 }
 
 function stepInMs_Tick(){
-	if(mainCPU.executeStepIn() != 0){
+	if(mainCPU.executeStepIn_Internal(false) != 0){
 		window.clearTimeout(stepInTimer);
+	} else{
+		autoStepInCount++;
+		if((autoStepInCount & 0xff) == 0){
+			mainCPU.API.API_flushWin(mainCPU, mainCPU.API.mainWindowCanvas.width, mainCPU.API.mainWindowCanvas.height, 0, 0);
+		}
 	}
 }
 
