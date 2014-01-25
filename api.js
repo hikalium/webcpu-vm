@@ -15,20 +15,6 @@ BitmapCanvas.prototype = {
 			this.height = this.canvasDOMObject.height;
 			this.bufferImageData = this.canvasContext.getImageData(0, 0, this.width, this.height);
 			this.bmp = this.bufferImageData.data;
-			console.log(this.bufferImageData);
-			//
-			/*
-			for(var i = 0; i < 100; i += 2){
-				this.drawLine(0, i, 100, i, 0xffffff, 0);
-			}
-			var x0 = 10;
-			var y0 = 10;
-			var x1 = 60;
-			var y1 = 11;
-			this.drawLine(x0, y0, x1, y1, 0xff0000, 0);
-			this.drawLine(x1, y1, x0, y0, 0x00ff00, 1);
-			*/
-			this.flush();
 		} else{
 			this.bmp = null;
 			this.canvasContext = null;

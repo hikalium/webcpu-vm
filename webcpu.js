@@ -188,6 +188,7 @@ WebCPU.prototype = {
 		
 		this.memoryPageCounter = 0;
 		this.memoryInstructionCounter = 0;
+		this.reset();
 	},
 	loadFrontEndBinaryText: function(binStr){
 		//引数はフロントエンドコードのHex文字列表現でスペースなどの他の文字の混入は認められない。
@@ -324,7 +325,10 @@ WebCPU.prototype = {
 		this.memoryPageCounter = 0;
 		this.memoryInstructionCounter = 0;
 		this.stopFlag = false;
-		//
+		//reset window
+		if(this.API.mainWindowCanvas){
+			this.API.setMainWindowCanvasDOMObject(this.API.mainWindowCanvas);
+		}
 		this.message("<<< Reset >>>\n");
 	},
 	fetchMemoryNext: function(){
@@ -344,15 +348,37 @@ WebCPU.prototype = {
 		this.API.setMainWindowCanvasDOMObject(document.getElementById(id));
 	},
 	setDebugMessageDOMObject: function(name){
-		this.debugMessageText = document.getElementsByName(name)[0];
+		if(name){
+			this.debugMessageText = document.getElementsByName(name)[0];
+			if(!this.debugMessageText){
+				this.debugMessageText = document.getElementById(name);
+			}
+		} else{
+			this.debugMessageText = null;
+		}
 		this.setDebugTimer();
 	},
 	setDebugIntegerRegisterDOMObject: function(name){
-		this.debugIntegerRegisterText = document.getElementsByName(name)[0];
+		if(name){
+			this.debugIntegerRegisterText = document.getElementsByName(name)[0];
+			if(!this.debugIntegerRegisterText){
+				this.debugIntegerRegisterText = document.getElementById(name);
+			}
+		} else{
+			this.debugIntegerRegisterText = null;
+		}
 		this.setDebugTimer();
 	},
 	setDebugPointerRegisterDOMObject: function(name){
 		this.debugPointerRegisterText = document.getElementsByName(name)[0];
+		if(name){
+			this.debugPointerRegisterText = document.getElementsByName(name)[0];
+			if(!this.debugPointerRegisterText){
+				this.debugPointerRegisterText = document.getElementById(name);
+			}
+		} else{
+			this.debugPointerRegisterText = null;
+		}
 		this.setDebugTimer();
 	},
 	setDebugTimer: function(){

@@ -6,6 +6,7 @@ function WebCPU_Instruction(instrID){
 	//命令クラス共通部分
 	//バックエンドバイナリでの命令先頭バイトのオフセット
 	this.binOffset = 0;
+	this.instrID = instrID;
 }
 WebCPU_Instruction.prototype = {
 	// loadArguments, execute, toStringが必須。
