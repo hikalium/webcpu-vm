@@ -255,7 +255,7 @@ WebCPU.prototype = {
 			for(var i = 0; i < this.registers.Pointer[0x02].addressOffset; i++){
 				binStr += ("00" + binData.data[i].toString(16)).slice(-2);
 			}
-			this.message("[" + binStr + "]\n");
+			this.message("[" + binStr + "](" + (binStr.length >> 1) + "Bytes)\n");
 			this.loadBackEndBinaryText(binStr);
 			this.reset();
 		} else{
@@ -398,12 +398,12 @@ WebCPU.prototype = {
 	},
 	debugShowTick: function(){
 		if(this.debugMessageText && this.debugMessageBuffer != ""){
-			var str = this.debugMessageText.innerHTML + this.debugMessageBuffer;
+			var str = this.debugMessageText.value + this.debugMessageBuffer;
 			this.debugMessageBuffer = "";
 			if(str.length > WebCPU.maxDebugStringLength){
 				str = str.slice(str.length - (WebCPU.maxDebugStringLength >> 1));
 			}
-			this.debugMessageText.innerHTML = str;
+			this.debugMessageText.value = str;
 			this.debugMessageText.scrollTop = this.debugMessageText.scrollHeight;
 		}
 		this.refreshDebugIntegerRegisterText();
@@ -443,20 +443,20 @@ WebCPU.prototype = {
 	},
 	refreshDebugIntegerRegisterText: function(){
 		if(this.debugIntegerRegisterText != null){
-			this.debugIntegerRegisterText.innerHTML = "";
+			this.debugIntegerRegisterText.value = "";
 			for(var i = 0; i < this.registers.Integer.length; i++){
-				this.debugIntegerRegisterText.innerHTML += "R" +  ("00" + i.toString(16)).slice(-2).toUpperCase() + ":0x" + this.registers.Integer[i].toString(16).toUpperCase() + "\n";
+				this.debugIntegerRegisterText.value += "R" +  ("00" + i.toString(16)).slice(-2).toUpperCase() + ":0x" + this.registers.Integer[i].toString(16).toUpperCase() + "\n";
 			}
 		}
 	},
 	refreshDebugPointerRegisterText: function(){
 		if(this.debugPointerRegisterText != null){
-			this.debugPointerRegisterText.innerHTML = "";
+			this.debugPointerRegisterText.value = "";
 			for(var i = 0; i < this.registers.Pointer.length; i++){
 				if(this.registers.Pointer[i]){
-					this.debugPointerRegisterText.innerHTML += "P" +  ("00" + i.toString(16)).slice(-2).toUpperCase() + ":" + this.registers.Pointer[i].toString() + "\n";
+					this.debugPointerRegisterText.value += "P" +  ("00" + i.toString(16)).slice(-2).toUpperCase() + ":" + this.registers.Pointer[i].toString() + "\n";
 				} else{
-					this.debugPointerRegisterText.innerHTML += "P" +  ("00" + i.toString(16)).slice(-2).toUpperCase() + ":(null)\n";
+					this.debugPointerRegisterText.value += "P" +  ("00" + i.toString(16)).slice(-2).toUpperCase() + ":(null)\n";
 				}
 			}
 		}
@@ -494,6 +494,11 @@ WebCPU.prototype = {
 	},
 	staticOptimize: function(){
 		//静的最適化
+		this.staticOptimize_RemoveDuplicatedLabelNumber();
+		this.staticOptimize_CMPxx_CND_PLIMM_PLIMM_LB();
+		this.staticOptimize_RemoveUnusedLabelNumber();
+	},
+	staticOptimize_RemoveDuplicatedLabelNumber: function(){
 		//連続するラベル命令の削除
 		//一つのメモリページにラベル命令のみがある場合は、それを次のメモリページのラベル名に置換する
 		var mpage;
@@ -527,7 +532,7 @@ WebCPU.prototype = {
 			}
 		}
 		if(labelIDStack.length != 0){
-			//プログラム末尾のラベル命令は削除しないようにする
+			//プログラム末尾のラベル命令は削除しない。
 			newLabelID = labelIDStack.pop();
 			for(;;){
 				labelID = labelIDStack.pop();
@@ -541,6 +546,7 @@ WebCPU.prototype = {
 		}
 	},
 	staticOptimize_ReplaceLabelNumber: function(from, to){
+		//PLIMM命令のラベル番号がfromのものをtoに変更する。
 		var mpage;
 		var instr;
 		for(var i = 0, iLen = this.mainMemory.root.length; i < iLen; i++){
@@ -554,7 +560,128 @@ WebCPU.prototype = {
 				}
 			}
 		}
-	}
+	},
+	staticOptimize_RemoveUnusedLabelNumber: function(){
+		var usedLabelNumberList = new Array();
+		var mpage;
+		var instr;
+		//使われているラベル番号のリスト生成
+		for(var i = 0, iLen = this.mainMemory.root.length; i < iLen; i++){
+			mpage = this.mainMemory.root[i];
+			for(var j = 0, jLen = mpage.data.length; j < jLen; j++){
+				instr = mpage.data[j];
+				if(instr instanceof WebCPU_Instruction_PLIMM){
+					usedLabelNumberList.pushUnique(instr.imm32);
+				}
+			}
+		}
+		//ラベルを走査し、不要なラベル番号を削除
+		for(var i = 0; i < this.mainMemory.root.length; i++){
+			mpage = this.mainMemory.root[i];
+			if(mpage instanceof WebCPU_MemoryPage && mpage.data[0] instanceof WebCPU_Instruction_LB){
+				if(mpage.data[0].opt == 1 || usedLabelNumberList.isIncluded(mpage.data[0].imm32)){
+					//使われている、もしくはグローバルなラベル番号
+				} else{
+					//未参照のローカルラベル番号
+					//ひとまずラベル命令削除
+					mpage.data.splice(0, 1);
+					if(i != 0){
+						//一つ前のページに統合
+						this.mainMemory.root[i - 1].data = this.mainMemory.root[i - 1].data.concat(mpage.data);
+						//このページを削除
+						this.mainMemory.root.splice(i, 1);
+						i--;
+					}
+				}
+			}
+		}
+	},
+	staticOptimize_CMPxx_CND_PLIMM_PLIMM_LB: function(){
+		//From:
+		//>CMPxx(Ra, --, --);
+		//CND(Ra);
+		//>PLIMM(P3F, b);
+		//PLIMM(P3F, --);
+		//----
+		//LB(opt:--, b);
+		//
+		//To:
+		//>CMP!(xx)(Ra, --, --);
+		//CND(Ra);
+		//PLIMM(P3F, --);
+		//----
+		//LB(opt:--, b);
+		
+		//これより後にstaticOptimize_RemoveUnusedLabelNumberを実行することを推奨する。
+		//CMP系命令は、InstrIDが偶数の場合+1, 奇数の場合-1することで逆の条件になる。
+		//CMP系:20-2D
+		var mode = 0;
+		var rega;
+		var immb;
+		//0:次は CMPxx(Ra, --, --);
+		//1:次は CND(Ra);
+		//2:次は PLIMM(P3F, b);
+		//3:次は PLIMM(P3F, --);
+		//4:次は LB(opt:--, b);
+		for(var i = 0, iLen = this.mainMemory.root.length; i < iLen; i++){
+			mpage = this.mainMemory.root[i];
+			for(var j = 0, jLen = mpage.data.length; j < jLen; j++){
+				instr = mpage.data[j];
+				switch(mode){
+					case 0:
+						if(instr instanceof WebCPU_Instruction_TernaryOperation && 0x20 <= instr.instrID && instr.instrID <= 0x2D){
+							//CMPxx(Ra, --, --);
+							rega = instr.reg0;
+							mode++;
+						}
+						break;
+					case 1:
+						if(instr instanceof WebCPU_Instruction_CND && instr.reg0R == rega){
+							//CND(Ra);
+							mode++;
+						} else{
+							mode = 0;
+						}
+						break;
+					case 2:
+						if(instr instanceof WebCPU_Instruction_PLIMM && instr.reg0 == 0x3f){
+							//PLIMM(P3F, b);
+							immb = instr.imm32;
+							mode++;
+						} else{
+							mode = 0;
+						}
+						break;
+					case 3:
+						if(instr instanceof WebCPU_Instruction_PLIMM && instr.reg0 == 0x3f){
+							//PLIMM(P3F, --);
+							mode++;
+						} else{
+							mode = 0;
+						}
+						break;
+					case 4:
+						if(instr instanceof WebCPU_Instruction_LB && instr.imm32 == immb){
+							//LB(opt:--, b);
+							//置換対象確定
+							mpage = this.mainMemory.root[i - 1];
+							//CMPxx(Ra, --, --); -> CMP!(xx)(Ra, --, --);
+							instr = mpage.data[mpage.data.length - 4];
+							if((instr.instrID & 0x01) == 0){
+								instr.instrID++;
+							} else{
+								instr.instrID--;
+							}
+							instr.setParameter(instr.reg0, instr.reg1, instr.reg2);
+							//Remove PLIMM(P3F, b);
+							mpage.data.splice(mpage.data.length - 2, 1);
+						}
+						mode = 0;
+						break;
+				}
+			}
+		}
+	},
 }
 
 //数値計算
