@@ -441,6 +441,20 @@ WebCPU.prototype = {
 			this.message(" - - - - \n", 30);
 		}
 	},
+	showIntegerRegister: function(){
+		for(var i = 0; i < this.registers.Integer.length; i++){
+			this.message("R" +  ("00" + i.toString(16)).slice(-2).toUpperCase() + ":0x" + this.registers.Integer[i].toString(16).toUpperCase() + "\n");
+		}
+	},
+	showPointerRegister: function(){
+		for(var i = 0; i < this.registers.Pointer.length; i++){
+			if(this.registers.Pointer[i]){
+				this.message("P" +  ("00" + i.toString(16)).slice(-2).toUpperCase() + ":" + this.registers.Pointer[i].toString() + "\n");
+			} else{
+				this.message("P" +  ("00" + i.toString(16)).slice(-2).toUpperCase() + ":(null)\n");
+			}
+		}
+	},
 	refreshDebugIntegerRegisterText: function(){
 		if(this.debugIntegerRegisterText != null){
 			this.debugIntegerRegisterText.value = "";
