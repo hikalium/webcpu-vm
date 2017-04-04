@@ -1,7 +1,7 @@
-*WebCPU-VM
-By [[hikarupsp]] 2013-2014 for OSECPU-VM
+## WebCPU-VM
+By hikarupsp(hikalium) 2013-2014 for OSECPU-VM
 
-**これは何？
+## これは何？
 -OSECPU-VMのJavaScript実装です。
 -テストページ
 --準備中です…
@@ -13,7 +13,7 @@ By [[hikarupsp]] 2013-2014 for OSECPU-VM
 -また、HTML5技術(Canvas)と連携することで、ウェブページに直接OSECPUコードを埋め込むこともできるようになるでしょう。
 --これは、テキストを直接転送しているHTMLにとって、データの転送量を削減することにもつながります。
 
-**動作環境
+## 動作環境
 動作を確認している環境は以下の通りです。(app0023フロントエンドコードテキストのStepInMs実行にて確認。)
 -Chrome (Mac OSX, Windows)
 
@@ -22,7 +22,7 @@ By [[hikarupsp]] 2013-2014 for OSECPU-VM
 -Browser (Android)
 -InternetExplorer9 (Windows)
 
-**できるようになったこと
+## できるようになったこと
 -フロントエンドコードの実行(decoder.oseを利用)
 -グラフィック関連APIのmode指定の反映(PSET,OR,XOR,AND等)
 -バイナリファイルの直接実行
@@ -32,9 +32,9 @@ By [[hikarupsp]] 2013-2014 for OSECPU-VM
 --ユーザー入力が必要なAPI
 --メモリ操作が必要なAPI
 
-**使い方は？
+## 使い方は？
 組み込んで使用する方は、index.htmlのサンプルコードを見ていただければ、だいたいはわかると思います。
-***テストページの操作方法
+### テストページの操作方法
 +binaryCodeのところに、バイナリをHex文字列化したものを打ち込む
 --もしくは実行バイナリファイルを直接読み込ませることもできます。
 +コードをLoadする
@@ -49,7 +49,7 @@ Loadボタンを押すことで、バイナリコードが解釈されてWebCPU�
 デバッグモード時は、実行中のレジスタ情報と現在実行中の命令について詳細を確認しながら実行できます。
 負荷のかかるアプリケーションを実行する際は、デバッグモードを無効にするのがよいでしょう。
 
-**技術情報
+### 技術情報
 [[hikarupsp_WebCPU-VM_internal]]を参照してください。
 
 
