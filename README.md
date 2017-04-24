@@ -32,9 +32,13 @@ By hikarupsp(hikalium) 2013-2014 for OSECPU-VM
   -メモリ操作が必要なAPI
 
 ## 使い方は？
+「テストページの操作方法」を参考にしてください。
 組み込んで使用する方は、index.htmlのサンプルコードを見ていただければ、だいたいはわかると思います。
 
 ### テストページの操作方法
+
+https://hikalium.github.io/webcpu-vm/
+
 1. binaryCodeのところに、バイナリをHex文字列化したものを打ち込む
   - もしくは実行バイナリファイルを直接読み込ませることもできます。
 1. コードをLoadする
@@ -51,6 +55,6 @@ By hikarupsp(hikalium) 2013-2014 for OSECPU-VM
   負荷のかかるアプリケーションを実行する際は、デバッグモードを無効にするのがよいでしょう。
 
 ### 技術情報
-[[hikarupsp_WebCPU-VM_internal]]を参照してください。
+[OSECPU-Wikiの記事](http://osecpu.osask.jp/wiki/?hikarupsp_WebCPU-VM_internal)を参照してください。
 
 
